@@ -21,7 +21,8 @@ La presentación tiene 6 slides:
 
 ## Características
 
-- **Single-file:** todo el HTML, CSS y JS está inline en `index.html`.
+- **Single-file:** todo el HTML, CSS, JS y el logo (en base64) están inline en
+  `index.html`. No depende de archivos externos.
 - **Navegación:** flechas `←` `→`, barra espaciadora (`Shift`+espacio retrocede),
   `Home`/`End`, botones, dots e indicador de progreso. Soporta swipe táctil.
 - **Diseño:** paleta basada en el logo de miFACU (azul royal), fuente Geist,
@@ -39,12 +40,16 @@ npx serve .
 
 ```
 .
-├── index.html         # La presentación (single-file)
-├── public/
-│   └── logo.jpeg      # Logo de miFACU (paleta de color)
+├── index.html         # La presentación (single-file, logo embebido en base64)
+├── assets/
+│   └── logo.jpeg      # Logo de miFACU (fuente; el HTML no depende de él)
 ├── vercel.json        # Configuración de sitio estático
 └── README.md
 ```
+
+> Nota: la carpeta de assets se llama `assets/` (no `public/`) a propósito.
+> Vercel toma automáticamente una carpeta `public/` como output directory cuando
+> no hay build, lo que ocultaría el `index.html` de la raíz.
 
 ## Despliegue
 
