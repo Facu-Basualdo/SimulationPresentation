@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulación de Capacidad Máxima — miFACU | UTN FRRE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Paleta basada en el logo de miFACU (birrete blanco sobre azul royal) */
+    --brand:#3b5fe3;
+    --brand-600:#2f4fd0;
+    --brand-700:#2540b3;
+    --brand-800:#1d3494;
+    --brand-50:#eef2ff;
+    --brand-100:#dfe6ff;
+    --ink:#0f1729;
+    --ink-soft:#3a4663;
+    --muted:#6b768f;
+    --line:#e3e8f4;
+    --bg:#f6f8fd;
+    --card:#ffffff;
+    --ok:#1f9d63;
+    --ok-bg:#e6f6ee;
+    --warn:#c98a12;
+    --warn-bg:#fdf3df;
+    --bad:#d4453b;
+    --bad-bg:#fcebe9;
+    --shadow:0 10px 40px -12px rgba(29,52,148,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Geist',system-ui,-apple-system,Segoe UI,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}
+
+  /* ---------- Deck / slides ---------- */
+  .deck{position:fixed;inset:0;}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(36px,6vw,96px);
+    opacity:0;visibility:hidden;
+    transform:translateX(40px) scale(.99);
+    transition:opacity .5s ease,transform .5s ease,visibility .5s;
+    overflow:hidden;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none;z-index:2;}
+  .slide.prev{transform:translateX(-40px) scale(.99);}
+
+  .slide-inner{width:100%;max-width:1120px;margin:0 auto;}
+
+  /* Decorative background accents */
+  .slide::before{
+    content:"";position:absolute;top:-180px;right:-160px;
+    width:520px;height:520px;border-radius:50%;
+    background:radial-gradient(circle,rgba(59,95,227,.10),transparent 70%);
+    pointer-events:none;
+  }
+
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:clamp(12px,1.1vw,14px);font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--brand-600);
+    background:var(--brand-50);border:1px solid var(--brand-100);
+    padding:7px 14px;border-radius:999px;margin-bottom:24px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);}
+
+  h1{font-size:clamp(32px,5.2vw,62px);font-weight:800;line-height:1.04;letter-spacing:-.02em;}
+  h2{font-size:clamp(26px,3.6vw,46px);font-weight:700;line-height:1.08;letter-spacing:-.015em;}
+  .lead{font-size:clamp(16px,1.7vw,22px);color:var(--ink-soft);font-weight:400;line-height:1.5;}
+  .section-head{margin-bottom:clamp(26px,3.4vh,40px);}
+  .section-head .num{
+    font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.1em;
+    margin-bottom:10px;display:block;
+  }
+
+  ul.bullets{list-style:none;display:flex;flex-direction:column;gap:clamp(14px,1.8vh,20px);}
+  ul.bullets li{
+    position:relative;padding-left:34px;
+    font-size:clamp(15px,1.6vw,20px);color:var(--ink-soft);line-height:1.5;
+  }
+  ul.bullets li b,ul.bullets li strong{color:var(--ink);font-weight:600;}
+  ul.bullets li::before{
+    content:"";position:absolute;left:0;top:.55em;
+    width:14px;height:14px;border-radius:4px;
+    background:var(--brand);box-shadow:0 0 0 4px var(--brand-50);
+  }
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:clamp(22px,3vw,40px);align-items:start;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:clamp(20px,2.4vw,30px);box-shadow:var(--shadow);
+  }
+  .card h3{font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-700);margin-bottom:14px;}
+
+  /* ---------- Tables ---------- */
+  table{width:100%;border-collapse:collapse;font-size:clamp(13px,1.35vw,16.5px);}
+  thead th{
+    text-align:left;font-weight:600;color:var(--muted);
+    font-size:clamp(11px,1.05vw,13px);letter-spacing:.06em;text-transform:uppercase;
+    padding:0 12px 12px;border-bottom:2px solid var(--line);
+  }
+  thead th.r,tbody td.r{text-align:right;}
+  tbody td{padding:13px 12px;border-bottom:1px solid var(--line);color:var(--ink-soft);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--brand-50);}
+  td .ep{color:var(--ink);font-weight:500;}
+
+  .badge{display:inline-block;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;}
+  .b-ok{background:var(--ok-bg);color:var(--ok);}
+  .b-warn{background:var(--warn-bg);color:var(--warn);}
+  .b-bad{background:var(--bad-bg);color:var(--bad);}
+
+  /* ---------- Stat cards ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2vw,26px);margin-bottom:clamp(22px,3vh,34px);}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:clamp(18px,2.2vw,26px);box-shadow:var(--shadow);}
+  .stat .k{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;}
+  .stat .v{font-size:clamp(26px,3.4vw,42px);font-weight:800;letter-spacing:-.02em;color:var(--brand-700);line-height:1;}
+  .stat .u{font-size:13px;color:var(--muted);margin-top:8px;}
+
+  /* ---------- Cover ---------- */
+  .cover{text-align:center;align-items:center;}
+  .cover::before{display:none;}
+  .cover::after{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 18% 20%,rgba(59,95,227,.10),transparent 42%),
+      radial-gradient(circle at 85% 78%,rgba(37,64,179,.10),transparent 45%);
+    pointer-events:none;
+  }
+  .cover .slide-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
+  .logo-badge{
+    width:clamp(76px,9vw,108px);height:clamp(76px,9vw,108px);border-radius:24px;
+    box-shadow:0 16px 40px -10px rgba(37,64,179,.5);margin-bottom:30px;
+    object-fit:cover;
+  }
+  .cover h1{margin-bottom:18px;max-width:16ch;}
+  .cover .lead{max-width:42ch;margin-bottom:34px;}
+  .cover .meta{display:flex;flex-direction:column;gap:6px;align-items:center;}
+  .pill-course{
+    font-weight:600;color:var(--brand-700);background:var(--brand-50);
+    border:1px solid var(--brand-100);padding:9px 18px;border-radius:999px;font-size:15px;
+  }
+  .group-line{color:var(--muted);font-size:15px;margin-top:14px;}
+  .group-line b{color:var(--ink);font-weight:600;}
+  .members{display:flex;flex-wrap:wrap;gap:8px 10px;justify-content:center;margin-top:12px;}
+  .member{font-size:13.5px;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);padding:6px 13px;border-radius:999px;}
+
+  .hint{font-size:13px;color:var(--muted);margin-top:38px;display:flex;align-items:center;gap:8px;justify-content:center;}
+  .key{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:#fff;font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink-soft);}
+
+  /* ---------- Conclusion highlight ---------- */
+  .callout{
+    background:linear-gradient(135deg,var(--brand-700),var(--brand));
+    color:#fff;border-radius:18px;padding:clamp(20px,2.6vw,30px);box-shadow:var(--shadow);
+  }
+  .callout h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;opacity:.85;margin-bottom:12px;font-weight:600;}
+  .callout .big{font-size:clamp(18px,2vw,25px);font-weight:600;line-height:1.32;}
+  .callout .big code{font-family:'Geist Mono',monospace;background:rgba(255,255,255,.16);padding:2px 8px;border-radius:7px;font-size:.92em;}
+
+  .close-note{
+    margin-top:clamp(22px,3vh,32px);font-size:clamp(15px,1.5vw,19px);
+    color:var(--ink-soft);line-height:1.5;border-left:4px solid var(--brand);
+    padding-left:18px;font-style:italic;
+  }
+
+  /* ---------- Navigation UI ---------- */
+  .nav-ui{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:18px clamp(24px,4vw,44px);pointer-events:none;}
+  .progress-track{position:fixed;top:0;left:0;right:0;height:4px;background:var(--brand-100);z-index:60;}
+  .progress-bar{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-700));width:0;transition:width .5s ease;}
+  .dots{display:flex;gap:11px;pointer-events:auto;}
+  .dot-nav{width:11px;height:11px;border-radius:50%;border:none;background:var(--brand-100);cursor:pointer;padding:0;transition:all .3s ease;}
+  .dot-nav:hover{background:var(--brand);transform:scale(1.15);}
+  .dot-nav.active{background:var(--brand);width:30px;border-radius:6px;}
+  .arrows{display:flex;gap:10px;pointer-events:auto;}
+  .arrow{
+    width:44px;height:44px;border-radius:12px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-soft);box-shadow:0 4px 14px -6px rgba(29,52,148,.25);transition:all .2s ease;
+  }
+  .arrow:hover{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .arrow:disabled{opacity:.35;cursor:not-allowed;}
+  .arrow:disabled:hover{background:#fff;color:var(--ink-soft);border-color:var(--line);}
+  .arrow svg{width:20px;height:20px;}
+  .counter{font-family:'Geist Mono',monospace;font-size:13px;color:var(--muted);pointer-events:auto;background:#fff;border:1px solid var(--line);padding:6px 12px;border-radius:999px;}
+  .counter b{color:var(--ink);}
+
+  .footer-tag{position:fixed;top:18px;right:clamp(24px,4vw,44px);z-index:55;font-size:12.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:8px;}
+  .footer-tag img{width:22px;height:22px;border-radius:6px;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:860px){
+    .grid-2{grid-template-columns:1fr;}
+    .stats{grid-template-columns:1fr;}
+    .footer-tag span{display:none;}
+    .slide{padding:60px 22px 90px;}
+  }
+  @media (max-height:560px){
+    .slide{justify-content:flex-start;padding-top:50px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+<div class="footer-tag">
+  <img src="/public/logo.jpeg" alt="miFACU">
+  <span>Simulación 2026 · UTN FRRE</span>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1 · PORTADA -->
+  <section class="slide cover active">
+    <div class="slide-inner">
+      <img class="logo-badge" src="/public/logo.jpeg" alt="Logo miFACU">
+      <h1>Simulación de Capacidad Máxima del servidor de miFACU</h1>
+      <p class="lead">Modelo de eventos discretos — Análisis del punto de saturación</p>
+      <div class="meta">
+        <span class="pill-course">Simulación 2026 · UTN FRRE</span>
+        <div class="group-line">Grupo <b>Los Pseudoaleatorios</b></div>
+        <div class="members">
+          <span class="member">Basualdo Alvarez Facundo</span>
+          <span class="member">Dorrego Romina Evelyn</span>
+          <span class="member">Drose Juan Ignacio</span>
+          <span class="member">Neira Nicolas</span>
+        </div>
+      </div>
+      <div class="hint">
+        <span class="key">←</span><span class="key">→</span>
+        <span>o</span><span class="key">espacio</span>
+        <span>para navegar</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 · ESCENARIO -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="section-head">
+        <span class="eyebrow"><span class="dot"></span>Escenario</span>
+        <h2>El contexto de miFACU</h2>
+      </div>
+      <div class="grid-2">
+        <div>
+          <ul class="bullets">
+            <li><b>miFACU</b> es una plataforma móvil/web de gestión académica para estudiantes argentinos.</li>
+            <li>Concentra la actividad en momentos pico: inscripciones, consulta de notas y materias.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>El problema</h3>
+          <ul class="bullets">
+            <li>Se desconoce <b>cuántos usuarios concurrentes</b> soporta antes de degradarse.</li>
+            <li>Bajo carga alta, los tiempos de respuesta crecen y el <b>pool de conexiones se satura</b>.</li>
+            <li>El resultado son <b>errores 503 / timeouts</b> visibles para el usuario.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 · OBJETIVO -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="section-head">
+        <span class="eyebrow"><span class="dot"></span>Objetivo</span>
+        <h2>Qué buscamos determinar</h2>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Meta del estudio</h3>
+          <ul class="bullets">
+            <li>Hallar el <b>punto de saturación</b>: la tasa de llegada de requests a partir de la cual el sistema se degrada.</li>
+            <li>Traducirlo a un <b>nº equivalente de usuarios concurrentes</b>.</li>
+            <li>Detectar cuándo aparecen <b>errores 503</b> por agotamiento del pool.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Cómo lo modelamos</h3>
+          <ul class="bullets">
+            <li>Simulación de <b>eventos discretos (DES)</b>.</li>
+            <li>Línea de espera con <b>recurso finito: 50 conexiones</b>.</li>
+            <li><b>Abandono</b> por timeout de <b>3 s</b>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 · VARIABLES -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="section-head">
+        <span class="eyebrow"><span class="dot"></span>Variables del modelo</span>
+        <h2>Entradas de la simulación</h2>
+      </div>
+      <div class="grid-2" style="grid-template-columns:.85fr 1.15fr;">
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <div class="card">
+            <h3>Variable de control</h3>
+            <p class="lead" style="font-size:17px;">Tiempo entre llegadas</p>
+            <div class="mono" style="font-size:26px;font-weight:600;color:var(--brand-700);margin-top:6px;">≈ 134 s <span style="font-size:14px;color:var(--muted)">/ usuario</span></div>
+          </div>
+          <div class="card">
+            <h3>Variable de servicio</h3>
+            <p style="color:var(--ink-soft);line-height:1.5;">Tiempo de respuesta por endpoint, modelado con distribución <b style="color:var(--ink)">Normal</b> (μ, σ).</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Endpoints — μ / σ (ms)</h3>
+          <table>
+            <thead>
+              <tr><th>Endpoint</th><th class="r">μ</th><th class="r">σ</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="mono ep">GET /recordatorios/:id</span></td><td class="r mono">399</td><td class="r mono">143</td></tr>
+              <tr><td><span class="mono ep">POST /recordatorios</span></td><td class="r mono">678</td><td class="r mono">100</td></tr>
+              <tr><td><span class="mono ep">GET /usuario-materias/:id</span></td><td class="r mono">366</td><td class="r mono">111</td></tr>
+              <tr><td><span class="mono ep">GET /usuario-materias/:id/disponibles</span></td><td class="r mono">562</td><td class="r mono">21</td></tr>
+              <tr><td><span class="mono ep">POST /usuario-materias/:id</span></td><td class="r mono">950</td><td class="r mono">35</td></tr>
+              <tr><td><span class="mono ep">GET /calificaciones-catedras/salon-de-fama</span></td><td class="r mono">198</td><td class="r mono">9</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 · RESULTADOS -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="section-head">
+        <span class="eyebrow"><span class="dot"></span>Resultados</span>
+        <h2>Capacidad y zonas de operación</h2>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Tiempo medio de servicio</div>
+          <div class="v">≈ 0,464 s</div>
+          <div class="u">E[S] ponderado por mezcla de tráfico</div>
+        </div>
+        <div class="stat">
+          <div class="k">Capacidad máxima teórica</div>
+          <div class="v">≈ 107,7</div>
+          <div class="u">req/s (λ máx)</div>
+        </div>
+        <div class="stat">
+          <div class="k">Usuarios concurrentes</div>
+          <div class="v">≈ 14.766</div>
+          <div class="u">equivalentes en saturación</div>
+        </div>
+      </div>
+      <div class="grid-2" style="grid-template-columns:1fr 1fr;align-items:stretch;">
+        <div class="card">
+          <h3>Zonas de operación</h3>
+          <ul class="bullets" style="gap:12px;">
+            <li><b>Estable</b> hasta ~75% de utilización.</li>
+            <li><b>Zona de codo</b> entre 75–95%: el tiempo de espera crece de forma no lineal.</li>
+            <li><b>Saturación</b> ≥100%: errores 503 sostenidos.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Escenarios de carga</h3>
+          <table>
+            <thead><tr><th>Utilización</th><th class="r">Estado esperado</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">25 %</td><td class="r"><span class="badge b-ok">Estable</span></td></tr>
+              <tr><td class="mono">50 %</td><td class="r"><span class="badge b-ok">Estable</span></td></tr>
+              <tr><td class="mono">75 %</td><td class="r"><span class="badge b-ok">Estable</span></td></tr>
+              <tr><td class="mono">90 %</td><td class="r"><span class="badge b-warn">Pre-saturación</span></td></tr>
+              <tr><td class="mono">100 %</td><td class="r"><span class="badge b-bad">Saturado</span></td></tr>
+              <tr><td class="mono">110 %</td><td class="r"><span class="badge b-bad">Saturado</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6 · CONCLUSIÓN -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="section-head">
+        <span class="eyebrow"><span class="dot"></span>Conclusión</span>
+        <h2>Cuello de botella y recomendaciones</h2>
+      </div>
+      <div class="grid-2" style="align-items:stretch;">
+        <div class="callout">
+          <h3>Cuello de botella principal</h3>
+          <div class="big"><code>POST /usuario-materias/:id</code> — escritura con JSONB, μ = 950 ms.<br><br>Seguido de <code>POST /recordatorios</code>.</div>
+        </div>
+        <div class="card">
+          <h3>Recomendaciones</h3>
+          <ul class="bullets" style="gap:12px;">
+            <li>Optimizar consultas de <b>escritura</b> (índices, JSONB).</li>
+            <li>Evaluar <b>aumentar el pool</b> o agregar <b>caché</b> para <span class="mono" style="font-size:.92em">GET /usuario-materias/:id</span> (41% del tráfico).</li>
+            <li>Configurar <b>alarmas de monitoreo</b> al superar el 80% de utilización.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="close-note">La simulación permitió anticipar el comportamiento del backend bajo distintas cargas sin degradar el servicio real.</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-ui">
+  <div class="counter"><b id="curNum">1</b> / <span id="totNum">6</span></div>
+  <div class="dots" id="dots"></div>
+  <div class="arrows">
+    <button class="arrow" id="prevBtn" aria-label="Anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="arrow" id="nextBtn" aria-label="Siguiente">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var current = 0;
+
+  var dotsWrap = document.getElementById('dots');
+  var progressBar = document.getElementById('progressBar');
+  var curNum = document.getElementById('curNum');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  document.getElementById('totNum').textContent = total;
+
+  // build dots
+  slides.forEach(function(_, i){
+    var b = document.createElement('button');
+    b.className = 'dot-nav' + (i===0?' active':'');
+    b.setAttribute('aria-label','Ir a slide '+(i+1));
+    b.addEventListener('click', function(){ go(i); });
+    dotsWrap.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(dotsWrap.children);
+
+  function render(){
+    slides.forEach(function(s, i){
+      s.classList.remove('active','prev');
+      if(i===current){ s.classList.add('active'); }
+      else if(i<current){ s.classList.add('prev'); }
+    });
+    dots.forEach(function(d,i){ d.classList.toggle('active', i===current); });
+    progressBar.style.width = (total>1 ? (current/(total-1))*100 : 100) + '%';
+    curNum.textContent = current+1;
+    prevBtn.disabled = current===0;
+    nextBtn.disabled = current===total-1;
+  }
+
+  function go(i){
+    if(i<0||i>=total||i===current) { if(i===current) return; }
+    current = Math.max(0, Math.min(total-1, i));
+    render();
+  }
+  function next(){ if(current<total-1) go(current+1); }
+  function prev(){ if(current>0) go(current-1); }
+
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight'){ e.preventDefault(); next(); }
+    else if(e.key==='ArrowLeft'){ e.preventDefault(); prev(); }
+    else if(e.key===' '){ e.preventDefault(); e.shiftKey?prev():next(); }
+    else if(e.key==='Home'){ e.preventDefault(); go(0); }
+    else if(e.key==='End'){ e.preventDefault(); go(total-1); }
+  });
+
+  // touch / swipe
+  var x0=null;
+  document.addEventListener('touchstart', function(e){ x0=e.changedTouches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(x0===null) return;
+    var dx=e.changedTouches[0].clientX - x0;
+    if(Math.abs(dx)>50){ dx<0?next():prev(); }
+    x0=null;
+  }, {passive:true});
+
+  render();
+})();
+</script>
+</body>
+</html>
